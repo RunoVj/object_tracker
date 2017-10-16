@@ -8,85 +8,108 @@
 
 #include <unistd.h>
 #include "harrisdetector.h"
+#include "videoprocessor.h"
+#include "featuretracker.h"
 
-#define path1 "/home/ilya/Code/ComputerVisionProjects/Images/harris.png"
-#define path2 "/home/ilya/Code/ComputerVisionProjects/Images/ugol.jpg"
 
 using namespace cv::xfeatures2d;
 
-int harris_test(cv::VideoCapture cap)
+//class FrameProcessor{
+//public:
+//    //processing method
+//    virtual void process(cv::Mat &input, cv::Mat &out) = 0;
+//};
+
+void canny(cv::Mat &img, cv::Mat &out)
 {
-    cv::Mat frame, edges, cornerStrength;
-
-    HarrisDetector harris;
-
-    cv::namedWindow("Window", 1);
-
-    for(;;){
-        cap >> frame;
-
-        cv::cvtColor(frame, edges, cv::COLOR_BGR2GRAY);
-        std::vector<cv::Point> pts;
-
-//        cv::GaussianBlur(edges, edges, cv::Size(3,3), 1.5, 1.5);
-//        cv::Canny(edges, edges, 0, 30, 3);
-
-        harris.detect(edges);
-        harris.getCorners(pts, 0.01);
-        harris.drawOnImage(frame, pts, cv::Scalar(255, 0, 0));
-
-        cv::imshow("edges", frame);
-
-
-        if(cv::waitKey(5) >= 0){
-            break;
-        }
-    }
-    return 0;
+    // Convert to gray
+    if (img.channels() == 3)
+    cv::cvtColor(img, out, CV_BGR2GRAY);
+    // Compute Canny edges
+    cv::Canny(out, out, 100, 200);
+    // Invert the image
+    cv::threshold(out, out, 128, 255, cv::THRESH_BINARY_INV);
 }
 
+void surf_detector(cv::Mat &img, cv::Mat &out)
+{
+    // Convert to gray
+    cv::Mat gray;
+    if (img.channels() == 3){
+        cv::cvtColor(img, gray, CV_BGR2GRAY);
+    }
+
+    std::vector<cv::KeyPoint> keypoints;
+
+    cv::Ptr<SURF> surf = SURF::create(2500.);
+
+    surf->detect(gray, keypoints);
+    img.copyTo(out);
+    cv::drawKeypoints(out, keypoints, out, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+}
+
+void harris(cv::Mat &img, cv::Mat &out)
+{
+    // Convert to gray
+    cv::Mat gray;
+    if (img.channels() == 3){
+        cv::cvtColor(img, gray, CV_BGR2GRAY);
+    }
+
+    std::vector<cv::Point> keypoints;
+    HarrisDetector harris;
+
+    cv::GaussianBlur(gray, gray, cv::Size(5, 5), 1.5, 1.5);
+    harris.detect(gray);
+    harris.getCorners(keypoints, 0.05);
+
+    img.copyTo(out);
+    harris.drawOnImage(out, keypoints, cv::Scalar(255, 0, 0));
+}
+
+void surf_and_harris(cv::Mat &img, cv::Mat &out)
+{
+    surf_detector(img, out);
+    harris(out, out);
+}
 
 int main(int argc, char** argv )
 {
-    cv::VideoCapture cap(0);
-    if(!cap.isOpened()){
-        return -1;
-    }
-
-    cv::Mat frame, gray_fr, edges, cornerStrength;
-    uint64 start;
-    double fps;
-
-    HarrisDetector harris;
-
-    for(;;){
-        start = cv::getTickCount();
-        std::vector<cv::Point> keypoints1;
-        std::vector<cv::KeyPoint> keypoints2;
-        cap >> frame;
-
-        cv::cvtColor(frame, gray_fr, cv::COLOR_BGR2GRAY);
-        cv::GaussianBlur(gray_fr, gray_fr, cv::Size(5, 5), 1.5, 1.5);
-
-        harris.detect(gray_fr);
-        harris.getCorners(keypoints1, 0.01);
-
-        harris.drawOnImage(frame, keypoints1, cv::Scalar(255, 0, 0));
+    // Create video procesor instance
+    VideoProcessor processor;
+    // Create feature tracker instance
+    FeatureTracker tracker;
+    // Open video file
+    processor.setInput("WEB_CAMERA");
+    // set frame processor
+    processor.setFrameProcessor(&tracker);
+    // Declare a window to display the video
+    processor.displayOutput("Tracked Features");
+    // Play the video at the original frame rate
+    processor.setDelay(1000./processor.getFrameRate());
+    // Start the process
+    processor.run();
 
 
-        cv::Ptr<SURF> surf = SURF::create(2500.);
-        surf->detect(gray_fr, keypoints2);
 
-        cv::drawKeypoints(frame, keypoints2, frame, cv::Scalar(0, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-        cv::imshow("edges", frame);
 
-        if(cv::waitKey(5) >= 0){
-            break;
-        }
+//    // Create instance
+//    VideoProcessor processor;
+//    // Open video file
+//    processor.setInput("WEB_CAMERA");
 
-        fps = cv::getTickFrequency() / (cv::getTickCount() - start);
-        std::cout << "FPS : " << fps << std::endl;
-    }
+//    // Declare a window to display the video
+//    processor.displayInput("Current Frame");
+//    processor.displayOutput("Output Frame");
+
+//    // Play the video at the original frame rate
+//    processor.setDelay(1000. / processor.getFrameRate());
+
+//    // Set the frame processor callback function
+//    processor.setFrameProcessor(surf_and_harris);
+
+//    // Start the proces
+//    processor.run();
 
     return 0;
 }
