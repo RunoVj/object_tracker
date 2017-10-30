@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(Test)
+project(object_detector)
 
 add_executable(${PROJECT_NAME}
     "main.cpp"
@@ -10,4 +10,4 @@ add_executable(${PROJECT_NAME}
     "featuretracker")
 
 find_package( OpenCV REQUIRED )
-target_link_libraries( Test ${OpenCV_LIBS} )
+target_link_libraries( object_detector ${OpenCV_LIBS} )

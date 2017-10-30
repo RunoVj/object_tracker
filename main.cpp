@@ -11,14 +11,7 @@
 #include "videoprocessor.h"
 #include "featuretracker.h"
 
-
 using namespace cv::xfeatures2d;
-
-//class FrameProcessor{
-//public:
-//    //processing method
-//    virtual void process(cv::Mat &input, cv::Mat &out) = 0;
-//};
 
 void canny(cv::Mat &img, cv::Mat &out)
 {
@@ -73,6 +66,7 @@ void surf_and_harris(cv::Mat &img, cv::Mat &out)
     harris(out, out);
 }
 
+
 int main(int argc, char** argv )
 {
     // Create video procesor instance
@@ -80,7 +74,8 @@ int main(int argc, char** argv )
     // Create feature tracker instance
     FeatureTracker tracker;
     // Open video file
-    processor.setInput("WEB_CAMERA");
+//    processor.setInput("WEB_CAMERA");
+    processor.setInput("/home/ilya/Desktop/planes.mp4");
     // set frame processor
     processor.setFrameProcessor(&tracker);
     // Declare a window to display the video
@@ -89,27 +84,6 @@ int main(int argc, char** argv )
     processor.setDelay(1000./processor.getFrameRate());
     // Start the process
     processor.run();
-
-
-
-
-//    // Create instance
-//    VideoProcessor processor;
-//    // Open video file
-//    processor.setInput("WEB_CAMERA");
-
-//    // Declare a window to display the video
-//    processor.displayInput("Current Frame");
-//    processor.displayOutput("Output Frame");
-
-//    // Play the video at the original frame rate
-//    processor.setDelay(1000. / processor.getFrameRate());
-
-//    // Set the frame processor callback function
-//    processor.setFrameProcessor(surf_and_harris);
-
-//    // Start the proces
-//    processor.run();
 
     return 0;
 }

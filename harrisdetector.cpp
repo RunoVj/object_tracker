@@ -23,7 +23,7 @@ void HarrisDetector::detect(const cv::Mat& image) {
 
     // internal threshold computation
     double minStrength; // not used
-    cv::minMaxLoc(cornerStrength, &minStrength,&maxStrength);
+    cv::minMaxLoc(cornerStrength, &minStrength, &maxStrength);
     // local maxima detection
 
     cv::Mat dilated; // temporary image

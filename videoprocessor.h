@@ -46,6 +46,8 @@ private:
     // number of digits in output image filename
     int digits;
 
+    bool flip;
+
 public:
     VideoProcessor();
     // set the callback function that

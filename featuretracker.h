@@ -3,7 +3,7 @@
 
 #include "frameprocessor.h"
 #include <vector>
-
+#include <iostream>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d.hpp>
@@ -24,25 +24,36 @@ class FeatureTracker : public FrameProcessor{
 
     // detected features
     std::vector<cv::Point2f> features;
-    int max_count;
 
     // maximum number of features to detect
-    double qlevel;
+    int max_count;
 
     // quality level for feature detection
-    double minDist;
+    double qlevel;
 
     // min distance between two points
+    double minDist;
+
+    double cluster_treshold;
+
     // status of tracked features
     std::vector<uchar> status;
 
     // error in tracking
     std::vector<float> err;
 
+    unsigned int cluster_count;
+
     void process(cv::Mat &frame, cv::Mat &out);
+
+
 
 public:
     FeatureTracker();
+
+    void k_means_tracker(cv::Mat &frame, std::vector<cv::Point2f> &points);
+    bool operator()(const cv::Point2f &a, const cv::Point2f &b);
+
     bool addNewPoints();
     void detectFeaturePoints();
     // handle the currently tracked points

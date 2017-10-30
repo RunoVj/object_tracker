@@ -39,10 +39,12 @@ bool VideoProcessor::setInput(std::string filename)
     if (filename == "WEB_CAMERA"){
         cv::VideoCapture cap(0);
         capture = cap;
+        flip = true;
         return capture.isOpened();
     }
     else{
         // Open the video file
+        flip = false;
         return capture.open(filename);
     }
 }
@@ -85,6 +87,8 @@ void VideoProcessor::run()
        if (!readNextFrame(frame)){
            break;
        }
+
+
 
        // display input frame
        if (windowNameInput.length()!=0){
@@ -156,7 +160,9 @@ void VideoProcessor::setDelay(int d)
 // could be: video file or camera
 bool VideoProcessor::readNextFrame(cv::Mat& frame)
 {
-    return capture.read(frame);
+    bool status = capture.read(frame);
+    cv::flip(frame, frame, 1);
+    return status;
 }
 
 // process callback to be called

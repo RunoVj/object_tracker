@@ -1,8 +1,34 @@
 #include "featuretracker.h"
 
 FeatureTracker::FeatureTracker()
-    : max_count(500), qlevel(0.01), minDist(10.)
+    : max_count(500), qlevel(0.01), minDist(10.), cluster_count(1), cluster_treshold(5000)
 {
+}
+
+
+void FeatureTracker::k_means_tracker(cv::Mat &frame, std::vector<cv::Point2f> &points)
+{
+    cv::Mat labels, centers;
+    std::vector<int> lab;
+
+    cluster_count = cv::partition<cv::Point2f>(points, lab, *(this));
+    std::cout << "K = " << cluster_count << std::endl;
+
+    int clusterCount = MIN(cluster_count, points.size());
+
+    if (clusterCount != 0 && points.size() > clusterCount){
+        cv::kmeans(points, clusterCount, labels,
+            cv::TermCriteria( cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0),
+               3, cv::KMEANS_RANDOM_CENTERS, centers);
+
+
+        for(int i = 0; i < clusterCount; ++i){
+            cv::circle( frame, cv::Point2f(centers.row(i)), 5, cv::Scalar(0, 0, 170), cv::FILLED, cv::LINE_AA );
+            cv::circle( frame, cv::Point2f(centers.row(i)), 100, cv::Scalar(255, 255, 255), 1, cv::LINE_AA );
+        }
+    }
+
+    cv::imshow("detected", frame);
 }
 
 void FeatureTracker::process(cv::Mat &frame, cv::Mat &out)
@@ -30,12 +56,14 @@ void FeatureTracker::process(cv::Mat &frame, cv::Mat &out)
     }
 
     // track features
+    cv::calcOpticalFlowPyrLK(
+                gray_prev,
+                gray, // 2 consecutive images
+                points[0], // input point positions in first image
+                points[1], // output point positions in the 2nd image
+                status,// tracking success
+                err);
 
-    cv::calcOpticalFlowPyrLK(gray_prev, gray, // 2 consecutive images
-                             points[0], // input point positions in first image
-            points[1], // output point positions in the 2nd image
-            status,// tracking success
-            err);
 
 
     // loop over the tracked points to reject some
@@ -44,14 +72,19 @@ void FeatureTracker::process(cv::Mat &frame, cv::Mat &out)
         // do we keep this point?
         if (acceptTrackedPoint(i)) {
             // keep this point in vector
-            initial[k]= initial[i];
+            initial[k] = initial[i];
             points[1][k++] = points[1][i];
         }
     }
 
+
     // eliminate unsuccesful points
     points[1].resize(k);
     initial.resize(k);
+
+
+    k_means_tracker(frame, points[1]);
+
 
     // handle the accepted tracked points
     handleTrackedPoints(frame, out);
@@ -59,6 +92,11 @@ void FeatureTracker::process(cv::Mat &frame, cv::Mat &out)
     // current points and image become previous ones
     std::swap(points[1], points[0]);
     cv::swap(gray_prev, gray);
+}
+
+bool FeatureTracker::operator()(const cv::Point2f &a, const cv::Point2f &b)
+{
+    return ((a.x - b.x)*(a.x - b.x) + (a.y - b.y)*(a.y - b.y)) < cluster_treshold;
 }
 
 // determine if new points should be added
